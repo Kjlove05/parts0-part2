@@ -2,6 +2,8 @@ import React from 'react'
 import Person from './Person'
 
 const PersonList =({persons,handleDelete,filter}) => {
+
+  
   const filtered = !filter
   ? persons
   : persons.filter((person) => person.name.toLowerCase().includes(filter.toLowerCase()))
@@ -14,13 +16,15 @@ const PersonList =({persons,handleDelete,filter}) => {
 
 
         return(
-            <div>
+            <div key={persons.id}>
                 {filteredList}
             </div>
         )
 
         }
+        
+     
+export default PersonList
   
 
 
-export default PersonList

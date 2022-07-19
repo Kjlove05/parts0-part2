@@ -1,160 +1,136 @@
 import React, {Component} from 'react'
-import Filter from './Filter'
-import PersonForm from './PersonForm'
-import personService from './persons'
-import Notification from './Notification'
-import PersonList from './PersonList'
+import Filter from './components/Filter'
+import PersonForm from './components/PersonForm'
+import personService from './api/persons'
+import Notification from './components/Notification'
+import PersonList from './components/PersonList'
+import {connect} from 'react-redux'
+import {deletePerson,addPerson,updatePerson} from './actions/action'
 
 
 class App extends Component {
   state = {
-    persons: [
-      {name: '', number:''},
-    ],
+    persons:{id:'',name:'',number:''},
+  
     newName: "",
     newNumber:"",
     filter:"",
     errorMessage:null
    
   }
- 
- componentDidMount(){
-    personService
-    .getAll()
-    .then(initialPersons => {
-      this.setState({persons: (initialPersons)})
+  
+  handleNameChange = (e) => {
+    this.setState({
+      newName:e.target.value
     })
-
   }
 
-  addPerson = (event) => {
-    event.preventDefault()
-    const personObject = {
-      name: this.state.newName,
-      number: this.state.newNumber,
-      id: this.state.persons.length + 1,
-    }
-    
-    const existingPerson = this.state.persons.find(
-      (person) => person.name.toLowerCase() === this.state.newName.toLowerCase())
-      
-      if (existingPerson && existingPerson.number === this.state.newNumber) {
-        alert(`${this.state.newName} is already added to phonebook`)
-        this.setState({newName:""})
-        this.setState({newNumber:""})
-        return
-      }
-    
-    if (existingPerson && existingPerson.number !== this.state.newNumber){
-       if (
-          window.confirm(
-            `${this.state.newName} is already added to phonebook, replace the old number with a new one?`
-          )
-        ) {
-          const changedPerson = { ...existingPerson, number: this.state.newNumber }
-          const id = existingPerson.id
-  
-          personService
-            .update(id, changedPerson)
-            .then((returnedPerson) => {
-              this.setState({persons:(
-                this.state.persons.map((person) => (person.id !== id ? person : returnedPerson))
-              )})
-              
-            })
-            .catch((error) => {
-              if(error.response.data){
-                this.setState({errorMessage:(error.response.data.error)})
-                setTimeout(() => {
-                this.setState({errorMessage:null})
-                }, 5000)
-              }})}}
-
-    
-    else {
-  personService
-    .create(personObject)
-    .then(returnedPerson => {
-      this.setState({persons:(this.state.persons.concat(returnedPerson))})
-      this.setState({newName:""})
-      this.setState({errorMessage:([`Added ${personObject.name}`,{color:'green'}])
+  handleNumberChange = (e) => {
+    this.setState({
+      newNumber:e.target.value
     })
-    setTimeout(() => {
-      this.setState({errorMessage:null})
-    }, 5000)
-    
-  })
-    .catch(error => {
-      this.setState({errorMessage:([`${error.response.data.error}`, {color: 'red'}])})
+  }
+
+  handleFilterChange = (e) => {
+    this.setState({
+      filter:e.target.value
+    })
+  }
+  handleDelete = (id) => {
+        if (window.confirm("Do you really want to delete this person")) {
+         this.props.deletePerson(id)
+            }
      
-      setTimeout(() => {
-        this.setState({errorMessage:null})
-      }, 5000)
-      console.log(error.response.data)
-    })}
-    
-    this.setState({newName:""})
-    this.setState({newNumber:""})
-    console.log(this.state.persons)
-  }
-  
-
-
-
- handleDelete = (id) => {
-    if (window.confirm("Do you really want to delete this person")) {
-      personService
-        .remove(id)
-        .then(() => {
-          this.setState({persons:(this.state.persons.filter((person) => person.id !== id))})
+          }
+      
+handleAdd= (name,number) =>{
+const{persons} =this.props
+  const existingPerson = persons.find(
+          (person) => person.name.toLowerCase() === this.state.newName.toLowerCase())
+          
+          if (existingPerson && existingPerson.number === this.state.newNumber) {
+            alert(`${this.state.newName} is already added to phonebook`)
+            this.setState({newName:""})
+            this.setState({newNumber:""})
+            return
+          }
+        
+        if (existingPerson && existingPerson.number !== this.state.newNumber){
+           if (
+              window.confirm(
+                `${this.state.newName} is already added to phonebook, replace the old number with a new one?`
+              )
+            ) {
+             
+        this.props.updatePerson(name,number);
+        this.setState({
+            newName:'',
+            newNumber:''
         })
-       .catch((error) => alert(error))
-       this.setState({errorMessage:([`Information of ${id} has been already remove from the server`,{color:'red'}])})
-       setTimeout(() => {
-        this.setState({errorMessage:null})
-      }, 5000)
-
-    } else {
-      return ""
-    }       
+      }
+    }
+        else {
+     
+          this.props.addPerson(name,number)
+          this.setState({
+            newName:"",
+            newNumber:""
+          })
+          this.setState({errorMessage:([`Added ${name}`,{color:'green'}])
+        })
+     
+      
+        
+        
+      }
+      
+        
+    
   }
-  handleNameChange = (event) => {
-    console.log(event.target.value)
-    this.setState({newName:event.target.value})
-  }
+ 
 
-  handleNumberChange = (event) => {
-    console.log(event.target.value)
-    this.setState({newNumber:event.target.value})
-  }
-
-  handleFilterChange = (event) => {
-    console.log(event.target.value)
-    this.setState({filter:event.target.value})
-  }
-
+  
   render(){
+    const{persons} =this.props
   return (
     <div>
       <h2>Phonebook</h2>
       <Notification message={this.state.errorMessage} />
       <Filter filter ={this.state.filter} handleFilterChange={this.handleFilterChange}/>
-      <form onSubmit={this.addPerson}>
       
       <h3>Add a new</h3>
       <PersonForm newName={this.state.newName} handleNameChange={this.handleNameChange} newNumber={this.state.newNumber} handleNumberChange={this.handleNumberChange}/>
         <div>
-          <button type="submit">add</button>
+        <button  onClick={()=>{
+          // console.log(this.state.newName,this.state.newNumber)
+          this.handleAdd(this.state.newName,this.state.newNumber)} } >
+                       Add
+                </button>
         </div>
-      </form>
+      
       <h2>Numbers</h2>
-     <PersonList  persons={this.state.persons} handleDelete={this.handleDelete} filter={this.state.filter}/>
+     <PersonList  persons={persons} handleDelete={this.handleDelete} filter={this.state.filter}/>
     </div>
   )
       
       }}
-   
-export default App 
+      const mapStateToProps = (state) => {
+        return{
+            persons:state.persons,
+        
+    }
+    
+
+}
+const mapDispatchToProps = (dispatch) => {
+  return {
+      deletePerson: (id)=> {dispatch(deletePerson(id))},
+      addPerson: (name,number) =>{dispatch(addPerson(name,number))},
+      updatePerson: (name,number) =>{dispatch(updatePerson(name,number))}
+
+  }
+}
+export default connect(mapStateToProps,mapDispatchToProps)(App) 
 
 // const App = () => {
 //   const [persons, setPersons] = useState([''])
